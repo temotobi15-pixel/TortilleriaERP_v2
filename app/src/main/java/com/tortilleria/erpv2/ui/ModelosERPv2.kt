@@ -1,4 +1,4 @@
-package com.tortilleria.erp.v2.data
+package com.tortilleria.erpv2.data
 
 import androidx.room.*
 import java.util.UUID

@@ -1,4 +1,4 @@
-package com.tortilleria.erp.v2.ui
+package com.tortilleria.erpv2.ui
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
