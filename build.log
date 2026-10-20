@@ -1,0 +1,42 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/7.6.3/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+The message received from the daemon indicates that the daemon has disappeared.
+Build request sent: Build{id=ef571b73-aaf6-46ed-bd66-9e518bfb091a, currentDir=/data/data/com.termux/files/home/TortilleriaERP_v2}
+Attempting to read last messages from the daemon log...
+Daemon pid: 16615
+  log file: /data/data/com.termux/files/home/.gradle/daemon/7.6.3/daemon-16615.out.log
+----- Last  20 lines from daemon log file - daemon-16615.out.log -----
+2026-10-20T12:43:56.219+0000 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Waiting to acquire exclusive lock on daemon addresses registry.
+2026-10-20T12:43:56.220+0000 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Lock acquired on daemon addresses registry.
+2026-10-20T12:43:56.222+0000 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Releasing lock on daemon addresses registry.
+2026-10-20T12:43:56.223+0000 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] resetting idle timer
+2026-10-20T12:43:56.224+0000 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] daemon is running. Sleeping until state changes.
+2026-10-20T12:43:56.228+0000 [INFO] [org.gradle.launcher.daemon.server.exec.StartBuildOrRespondWithBusy] Daemon is about to start building Build{id=ef571b73-aaf6-46ed-bd66-9e518bfb091a, currentDir=/data/data/com.termux/files/home/TortilleriaERP_v2}. Dispatching build started information...
+2026-10-20T12:43:56.230+0000 [DEBUG] [org.gradle.launcher.daemon.server.SynchronizedDispatchConnection] thread 21: dispatching org.gradle.launcher.daemon.protocol.BuildStarted@5a3717b6
+2026-10-20T12:43:56.242+0000 [DEBUG] [org.gradle.launcher.daemon.server.exec.EstablishBuildEnvironment] Configuring env variables: [PATH, ANDROID_I18N_ROOT, HISTCONTROL, JAVA_HOME, TERMUX_VERSION, TERM, EXTERNAL_STORAGE, LANG, ANDROID_ASSETS, ANDROID_HOME, ANDROID_STORAGE, COLORTERM, ANDROID_ART_ROOT, ANDROID_ROOT, TERMUX_EXEC__PROC_SELF_EXE, PWD, BOOTCLASSPATH, _, SYSTEMSERVERCLASSPATH, SHELL, ANDROID_DATA, ASEC_MOUNTPOINT, ANDROID_TZDATA_ROOT, OLDPWD, ANDROID_SDK_ROOT, TMPDIR, PREFIX, TMP, DEX2OATBOOTCLASSPATH, LD_PRELOAD, HOME, SHLVL]
+2026-10-20T12:43:56.248+0000 [WARN] [org.gradle.launcher.daemon.server.exec.EstablishBuildEnvironment] Warning: Unable able to set daemon's environment variables to match the client because: 
+  There is no native integration with this operating environment.
+  If the daemon was started with a significantly different environment from the client, and your build 
+  relies on environment variables, you may experience unexpected behavior.
+2026-10-20T12:43:56.253+0000 [DEBUG] [org.gradle.launcher.daemon.server.exec.LogToClient] About to start relaying all logs to the client via the connection.
+2026-10-20T12:43:56.254+0000 [INFO] [org.gradle.launcher.daemon.server.exec.LogToClient] The client will now receive all logging from the daemon (pid: 16615). The daemon log file: /data/data/com.termux/files/home/.gradle/daemon/7.6.3/daemon-16615.out.log
+2026-10-20T12:43:56.264+0000 [DEBUG] [org.gradle.launcher.daemon.server.exec.RequestStopIfSingleUsedDaemon] Requesting daemon stop after processing Build{id=ef571b73-aaf6-46ed-bd66-9e518bfb091a, currentDir=/data/data/com.termux/files/home/TortilleriaERP_v2}
+2026-10-20T12:43:56.265+0000 [LIFECYCLE] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] Daemon will be stopped at the end of the build 
+2026-10-20T12:43:56.266+0000 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] Stop as soon as idle requested. The daemon is busy: true
+2026-10-20T12:43:56.267+0000 [DEBUG] [org.gradle.launcher.daemon.server.DaemonStateCoordinator] daemon stop has been requested. Sleeping until state changes.
+2026-10-20T12:43:56.283+0000 [DEBUG] [org.gradle.launcher.daemon.server.exec.ExecuteBuild] The daemon has started executing the build.
+2026-10-20T12:43:56.284+0000 [DEBUG] [org.gradle.launcher.daemon.server.exec.ExecuteBuild] Executing build with daemon context: DefaultDaemonContext[uid=380eae80-72b8-4d98-82d6-5f6a76b1be43,javaHome=/data/data/com.termux/files/usr/lib/jvm/java-11-openjdk,daemonRegistryDir=/data/data/com.termux/files/home/.gradle/daemon,pid=16615,idleTimeout=120000,priority=NORMAL,daemonOpts=-XX:MaxMetaspaceSize=256m,--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country,-Duser.language=en,-Duser.variant]
+----- End of the daemon log -----
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Gradle build daemon disappeared unexpectedly (it may have been killed or may have crashed)
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+
+* Get more help at https://help.gradle.org
