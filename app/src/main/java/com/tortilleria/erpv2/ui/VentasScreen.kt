@@ -12,137 +12,142 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tortilleria.erpv2.data.AppDatabase
 import com.tortilleria.erpv2.data.CatalogoFijo
-import com.tortilleria.erpv2.data.Venta
+import com.tortilleria.erpv2.data.ItemCuenta
+import com.tortilleria.erpv2.data.Ticket
+import com.tortilleria.erpv2.data.TicketDetalle
 import kotlinx.coroutines.launch
 
 @Composable
-fun VentasScreen(onBack: () -> Unit) {
+fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
     val context = LocalContext.current
     val db = remember { AppDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
 
-    var kilos by remember { mutableStateOf("") }
-    var ventas by remember { mutableStateOf(listOf<Venta>()) }
+    var catSel by remember { mutableStateOf("TORTILLA") }
+    var cuenta by remember { mutableStateOf(listOf<ItemCuenta>()) }
     var totalHoy by remember { mutableStateOf(0.0) }
     
-    var productoIdx by remember { mutableStateOf(0) }
-    var showProdMenu by remember { mutableStateOf(false) }
-    var showVarMenu by remember { mutableStateOf(false) }
-    var showTicketDialog by remember { mutableStateOf(false) }
+    var selVariante by remember { mutableStateOf<Pair<String, com.tortilleria.erpv2.data.ProductoVariante>?>(null) }
+    var kilosInput by remember { mutableStateOf("") }
+    var showKilosDialog by remember { mutableStateOf(false) }
+    var showClienteDialog by remember { mutableStateOf(false) }
     var clienteTicket by remember { mutableStateOf("") }
 
-    val producto = CatalogoFijo.productos[productoIdx]
-    var varianteSel by remember(productoIdx) { mutableStateOf(producto.variantes[0]) }
+    fun cargarTotal() { scope.launch { totalHoy = db.ticketDao().totalHoy() ?: 0.0 } }
+    LaunchedEffect(Unit) { cargarTotal() }
 
-    fun cargar() {
-        scope.launch {
-            ventas = db.ventaDao().obtenerTodas()
-            totalHoy = db.ventaDao().totalHoy() ?: 0.0
+    val totalCuenta = cuenta.sumOf { it.total }
+
+    Column(Modifier.fillMaxSize().padding(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Button(onClick = onBack) { Text("← Menú") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onVerHistorial) { Text("Ver Tickets") }
+                Text("Hoy: $${String.format("%.2f", totalHoy)}", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top=8.dp))
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // IZQUIERDA - INVENTARIO
+            Card(Modifier.weight(1.7f).fillMaxHeight()) {
+                Column(Modifier.padding(8.dp)) {
+                    Text("Inventario", fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical=6.dp)) {
+                        CatalogoFijo.categorias.forEach { cat ->
+                            FilterChip(selected = catSel==cat, onClick = { catSel=cat }, label = { Text(cat) })
+                        }
+                    }
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(CatalogoFijo.porCategoria(catSel)) { prod ->
+                            Text(prod.nombre, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            prod.variantes.forEach { v ->
+                                ElevatedCard(onClick = { selVariante = prod.nombre to v; kilosInput=""; showKilosDialog=true }, modifier = Modifier.fillMaxWidth()) {
+                                    Row(Modifier.padding(10.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(v.nombre); Text("$${v.precio}/kg", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(4.dp))
+                        }
+                    }
+                }
+            }
+
+            // DERECHA - CUENTA
+            Card(Modifier.weight(1f).fillMaxHeight()) {
+                Column(Modifier.padding(8.dp).fillMaxHeight()) {
+                    Text("Cuenta", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Divider()
+                    if (cuenta.isEmpty()) {
+                        Text("Toca un producto para agregar", modifier = Modifier.padding(20.dp))
+                    } else {
+                        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            items(cuenta) { item ->
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Column { Text("${item.producto} ${item.variante}", fontSize=12.sp, fontWeight=FontWeight.Bold); Text("${item.kilos}kg x $${item.precio}", fontSize=10.sp) }
+                                    Text("$${String.format("%.2f", item.total)}", fontWeight=FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                    Divider()
+                    Text("Total: $${String.format("%.2f", totalCuenta)}", fontSize=20.sp, fontWeight=FontWeight.Bold, modifier=Modifier.padding(vertical=8.dp))
+                    Button(onClick = {
+                        if(cuenta.isEmpty()) return@Button
+                        scope.launch {
+                            val id = db.ticketDao().insertarTicket(Ticket(total=totalCuenta, tipo="COBRADO"))
+                            db.ticketDao().insertarDetalles(cuenta.map { TicketDetalle(ticketId=id.toInt(), producto=it.producto, variante=it.variante, kilos=it.kilos, precioKg=it.precio, total=it.total) })
+                            cuenta = listOf(); cargarTotal()
+                        }
+                    }, modifier=Modifier.fillMaxWidth()) { Text("Cobrar") }
+                    OutlinedButton(onClick = { if(cuenta.isNotEmpty()) showClienteDialog=true }, modifier=Modifier.fillMaxWidth()) { Text("Guardar Ticket") }
+                    TextButton(onClick = { cuenta = listOf() }, modifier=Modifier.fillMaxWidth()) { Text("Limpiar") }
+                }
+            }
         }
     }
-    LaunchedEffect(Unit) { cargar() }
 
-    val kilosD = kilos.toDoubleOrNull() ?: 0.0
-    val totalCalc = kilosD * varianteSel.precio
-
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Button(onClick = onBack) { Text("← Menú") }
-            Text("Hoy: $${String.format("%.2f", totalHoy)}", fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(12.dp))
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Nueva Venta", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-
-                // Selector Producto
-                Box {
-                    OutlinedButton(onClick = { showProdMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Producto: ${producto.nombre}")
+    if (showKilosDialog) {
+        AlertDialog(onDismissRequest = { showKilosDialog=false },
+            title={ Text("${selVariante?.first} ${selVariante?.second?.nombre}") },
+            text={
+                OutlinedTextField(value=kilosInput, onValueChange={ kilosInput=it }, label={ Text("Kilos (a granel)") })
+            },
+            confirmButton={
+                Button(onClick={
+                    val k = kilosInput.toDoubleOrNull() ?: 0.0
+                    if(k>0 && selVariante!=null){
+                        val v = selVariante!!.second
+                        cuenta = cuenta + ItemCuenta(selVariante!!.first, v.nombre, k, v.precio, k*v.precio)
                     }
-                    DropdownMenu(expanded = showProdMenu, onDismissRequest = { showProdMenu = false }) {
-                        CatalogoFijo.productos.forEachIndexed { idx, p ->
-                            DropdownMenuItem(text = { Text(p.nombre) }, onClick = { productoIdx = idx; showProdMenu = false })
-                        }
-                    }
+                    showKilosDialog=false
+                }){ Text("Agregar") }
+            },
+            dismissButton={ TextButton(onClick={showKilosDialog=false}){ Text("Cancelar") } }
+        )
+    }
+
+    if (showClienteDialog) {
+        AlertDialog(onDismissRequest = { showClienteDialog=false },
+            title={ Text("Guardar por cobrar") },
+            text={
+                Column {
+                    Text("Total: $${String.format("%.2f", totalCuenta)}")
+                    OutlinedTextField(value=clienteTicket, onValueChange={clienteTicket=it}, label={ Text("Cliente") }, modifier=Modifier.padding(top=8.dp))
                 }
-
-                // Selector Variante
-                Box {
-                    OutlinedButton(onClick = { showVarMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("${varianteSel.nombre} - $${varianteSel.precio}/kg")
+            },
+            confirmButton={
+                Button(onClick={
+                    scope.launch {
+                        val id = db.ticketDao().insertarTicket(Ticket(total=totalCuenta, tipo="POR_COBRAR", cliente=clienteTicket))
+                        db.ticketDao().insertarDetalles(cuenta.map { TicketDetalle(ticketId=id.toInt(), producto=it.producto, variante=it.variante, kilos=it.kilos, precioKg=it.precio, total=it.total) })
+                        cuenta=listOf(); clienteTicket=""; showClienteDialog=false; cargarTotal()
                     }
-                    DropdownMenu(expanded = showVarMenu, onDismissRequest = { showVarMenu = false }) {
-                        producto.variantes.forEach { v ->
-                            DropdownMenuItem(text = { Text("${v.nombre} - $${v.precio}") }, onClick = { varianteSel = v; showVarMenu = false })
-                        }
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = kilos, onValueChange = { kilos = it }, label = { Text("Kilos") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = "$${varianteSel.precio}", onValueChange = {}, readOnly = true, label = { Text("Precio") }, modifier = Modifier.weight(1f))
-                }
-
-                Text("Total: $${String.format("%.2f", totalCalc)}", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = {
-                        if (kilosD <= 0) return@OutlinedButton
-                        showTicketDialog = true
-                    }, modifier = Modifier.weight(1f)) {
-                        Text("Guardar Ticket")
-                    }
-                    Button(onClick = {
-                        if (kilosD <= 0) return@Button
-                        scope.launch {
-                            db.ventaDao().insertar(Venta(producto = producto.nombre, variante = varianteSel.nombre, kilos = kilosD, precioKg = varianteSel.precio, total = totalCalc, tipo = "COBRADA"))
-                            kilos = ""; cargar()
-                        }
-                    }, modifier = Modifier.weight(1f)) {
-                        Text("Cobrar")
-                    }
-                }
-            }
-        }
-        
-        if (showTicketDialog) {
-            AlertDialog(onDismissRequest = { showTicketDialog = false },
-                title = { Text("Guardar Ticket") },
-                text = {
-                    Column {
-                        Text("Cliente para cobrar después:")
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(value = clienteTicket, onValueChange = { clienteTicket = it }, label = { Text("Nombre / Tienda") })
-                        Text("Total: $${String.format("%.2f", totalCalc)} - ${producto.nombre} ${varianteSel.nombre}", modifier = Modifier.padding(top=8.dp))
-                    }
-                },
-                confirmButton = {
-                    Button(onClick = {
-                        scope.launch {
-                            db.ventaDao().insertar(Venta(producto = producto.nombre, variante = varianteSel.nombre, kilos = kilosD, precioKg = varianteSel.precio, total = totalCalc, tipo = "TICKET", cliente = clienteTicket))
-                            clienteTicket = ""; kilos = ""; showTicketDialog = false; cargar()
-                        }
-                    }) { Text("Guardar") }
-                },
-                dismissButton = { TextButton(onClick = { showTicketDialog = false }) { Text("Cancelar") } }
-            )
-        }
-
-        Spacer(Modifier.height(10.dp))
-        Text("Historial (Cobros y Tickets):", fontWeight = FontWeight.Bold)
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(ventas) { v ->
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if(v.tipo=="TICKET") MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant)) {
-                    Row(Modifier.padding(12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column { 
-                            Text("${v.producto} ${v.variante} - ${v.kilos}kg", fontWeight = FontWeight.Bold)
-                            Text(if(v.tipo=="TICKET") "TICKET: ${v.cliente}" else "COBRADA", fontSize = 12.sp)
-                        }
-                        Text("$${v.total}", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
+                }){ Text("Guardar") }
+            },
+            dismissButton={ TextButton(onClick={showClienteDialog=false}){ Text("Cancelar") } }
+        )
     }
 }
