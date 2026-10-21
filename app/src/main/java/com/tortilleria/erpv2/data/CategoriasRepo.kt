@@ -12,9 +12,7 @@ object CategoriasRepo {
     )
     fun agregar(nombre: String) {
         val n = nombre.trim()
-        if (n.isNotEmpty() && !categorias.any { it.equals(n, true) }) {
-            categorias.add(n)
-        }
+        if (n.isNotEmpty() && !categorias.any { it.equals(n, true) }) categorias.add(n)
     }
     fun eliminar(nombre: String) {
         if (categorias.size > 1) categorias.remove(nombre)
