@@ -9,13 +9,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun MenuScreen(onVentas: () -> Unit, onHistorial: () -> Unit, onInventario: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+fun MenuScreen(
+    onVentas: () -> Unit,
+    onProduccion: () -> Unit,
+    onInventario: () -> Unit,
+    onClientes: () -> Unit,
+    onReportes: () -> Unit
+) {
+    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Tortillería ERP v2", fontSize = 28.sp, fontWeight = FontWeight.Bold)
-        Text("¿Qué quieres hacer hoy?")
-        Spacer(Modifier.height(10.dp))
-        ElevatedButton(onClick = onVentas, modifier = Modifier.fillMaxWidth().height(70.dp)) { Text("1. VENTAS - Punto de venta", fontSize = 18.sp) }
-        ElevatedButton(onClick = onHistorial, modifier = Modifier.fillMaxWidth().height(70.dp)) { Text("2. HISTORIAL DE TICKETS", fontSize = 18.sp) }
-        OutlinedButton(onClick = onInventario, modifier = Modifier.fillMaxWidth().height(60.dp)) { Text("3. INVENTARIO") }
+        Text("Base OK - Módulos:", fontSize = 18.sp)
+        Spacer(Modifier.height(8.dp))
+
+        MenuCard("🛒 Ventas y Pedidos", "Registrar pedidos, tortilla, masa", onVentas)
+        MenuCard("🌽 Producción", "Kilos producidos, merma", onProduccion)
+        MenuCard("📦 Inventario", "Maíz, harina, gas, papel", onInventario)
+        MenuCard("👥 Clientes", "Tiendas, rutas, adeudos", onClientes)
+        MenuCard("📊 Reportes", "Corte de caja, utilidad", onReportes)
+    }
+}
+
+@Composable
+private fun MenuCard(titulo: String, subtitulo: String, onClick: () -> Unit) {
+    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text(titulo, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text(subtitulo, fontSize = 14.sp)
+        }
     }
 }
