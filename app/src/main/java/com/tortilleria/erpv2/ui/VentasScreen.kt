@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tortilleria.erpv2.data.InventarioRepo
+import com.tortilleria.erpv2.data.CategoriasRepo
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -66,7 +67,16 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
     var cobroOk by remember { mutableStateOf(false) }
 
     val totalCarrito = carrito.sumOf { it.total }
-    val categoriasLista = listOf("Lo más frecuente", "Tortilleria", "Mostrador", "Granel y Otros", "Dulces y Botanas", "Frutas y Verduras")
+    // --- CORREGIDO: usa CategoriasRepo dinámico ---
+    val categoriasLista = CategoriasRepo.categorias
+
+    // --- CORREGIDO: filtrado real por categoriaVenta ---
+    val productosFiltrados by remember(categoriaSel, catalogo) {
+        mutableStateOf(
+            if (categoriaSel == "Lo más frecuente") catalogo
+            else catalogo.filter { it.categoriaVenta.equals(categoriaSel, ignoreCase = true) }
+        )
+    }
 
     if (catalogo.isEmpty()) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -78,7 +88,6 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
 
     Row(Modifier.fillMaxSize()) {
         Column(Modifier.weight(0.62f).fillMaxHeight()) {
-            // HEADER VERDE SIN HOY - como tu tablet
             Surface(color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack) { Text("☰", color = MaterialTheme.colorScheme.onPrimary) }
@@ -86,7 +95,7 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                 }
             }
             LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.weight(1f).padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                items(catalogo) { p ->
+                items(productosFiltrados) { p ->
                     ElevatedCard(onClick = {
                         prodSel = p
                         varianteSel = p.variantes.firstOrNull()
@@ -126,10 +135,8 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Total", fontWeight = FontWeight.Bold); Text("$${"%.2f".format(totalCarrito)}", fontWeight = FontWeight.Bold)
             }
-            // BOTONES DINAMICOS COMO TU FOTO
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                 if (carrito.isEmpty()) {
-                    // TICKETS ABIERTOS - como foto 3
                     Button(onClick = { showTicketsAbiertos = true }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                         Text("TICKETS ABIERTOS", fontSize = 10.sp, lineHeight = 12.sp)
                     }
@@ -149,9 +156,7 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
         }
     }
 
-    // DIALOG CANTIDAD - empieza en 0 y borrar funciona
     if (showCantidad && prodSel != null) {
-        val cantidadNum = cantidadStr.toDoubleOrNull() ?: 0.0
         AlertDialog(onDismissRequest = { showCantidad = false },
             title = { Text(prodSel!!.nombre) },
             text = {
@@ -222,7 +227,6 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
         )
     }
 
-    // TICKETS ABIERTOS - como foto 1
     if (showTicketsAbiertos) {
         AlertDialog(onDismissRequest = { showTicketsAbiertos = false },
             title = { Text("Tickets abiertos") },
