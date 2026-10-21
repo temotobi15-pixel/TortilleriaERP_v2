@@ -39,12 +39,10 @@ fun InventarioScreen(onBack: () -> Unit) {
     ))}
     var nextId by remember { mutableStateOf(5) }
 
-    // Ajuste stock
     var showAjuste by remember { mutableStateOf<Insumo?>(null) }
     var cantidadInput by remember { mutableStateOf("") }
     var esEntrada by remember { mutableStateOf(true) }
 
-    // Crear / Editar
     var showNuevo by remember { mutableStateOf(false) }
     var editando by remember { mutableStateOf<Insumo?>(null) }
     var nNombre by remember { mutableStateOf("") }
@@ -149,12 +147,7 @@ fun InventarioScreen(onBack: () -> Unit) {
                     item { OutlinedTextField(value=nMinimo, onValueChange={nMinimo=it.replace(",",".")}, label={Text("Stock Mínimo *")}, keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number), modifier=Modifier.fillMaxWidth(), singleLine=true) }
                     item { OutlinedTextField(value=nCosto, onValueChange={nCosto=it.replace(",",".")}, label={Text("Costo por ${nUnidad}")}, keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number), modifier=Modifier.fillMaxWidth(), singleLine=true) }
                     item { OutlinedTextField(value=nPrecio, onValueChange={nPrecio=it.replace(",",".")}, label={Text("Precio Venta base")}, keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number), modifier=Modifier.fillMaxWidth(), singleLine=true) }
-                    item { 
-                        Row(verticalAlignment=Alignment.CenterVertically) {
-                            Checkbox(checked=nAparece, onCheckedChange={nAparece=it})
-                            Text("Aparece en catálogo de Ventas", fontSize=13.sp)
-                        }
-                    }
+                    item { Row(verticalAlignment=Alignment.CenterVertically) { Checkbox(checked=nAparece, onCheckedChange={nAparece=it}); Text("Aparece en catálogo de Ventas", fontSize=13.sp) } }
                     item { Divider(); Text("Variantes de producto", fontWeight=FontWeight.Bold, fontSize=14.sp, modifier=Modifier.padding(top=8.dp)) }
                     item {
                         Row(horizontalArrangement=Arrangement.spacedBy(6.dp), verticalAlignment=Alignment.CenterVertically) {
@@ -177,7 +170,7 @@ fun InventarioScreen(onBack: () -> Unit) {
             confirmButton = {
                 Button(enabled=nNombre.isNotBlank(), onClick={
                     if(editando==null){
-                        val nuevo = Insumo(nextId, nNombre.trim(), nCategoria, nUnidad=nUnidad, stock=nStock.toDoubleOrNull()?:0.0, minimo=nMinimo.toDoubleOrNull()?:0.0, costo=nCosto.toDoubleOrNull()?:0.0, precioVenta=nPrecio.toDoubleOrNull()?:0.0, apareceEnCatalogo=nAparece, variantes=nVariantes)
+                        val nuevo = Insumo(id=nextId, nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:0.0, minimo=nMinimo.toDoubleOrNull()?:0.0, costo=nCosto.toDoubleOrNull()?:0.0, precioVenta=nPrecio.toDoubleOrNull()?:0.0, apareceEnCatalogo=nAparece, variantes=nVariantes)
                         insumos = insumos + nuevo; nextId++
                     } else {
                         insumos = insumos.map { if(it.id==editando!!.id) it.copy(nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:it.stock, minimo=nMinimo.toDoubleOrNull()?:it.minimo, costo=nCosto.toDoubleOrNull()?:it.costo, precioVenta=nPrecio.toDoubleOrNull()?:it.precioVenta, apareceEnCatalogo=nAparece, variantes=nVariantes) else it }
