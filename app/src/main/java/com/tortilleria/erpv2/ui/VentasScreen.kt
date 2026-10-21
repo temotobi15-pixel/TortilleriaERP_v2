@@ -17,7 +17,6 @@ import com.tortilleria.erpv2.data.InventarioRepo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
-    // Ahora lee del Repo compartido y filtra por checkbox Aparece en catalogo
     val catalogo = InventarioRepo.productos.filter { it.apareceEnCatalogo }
 
     var seleccionado by remember { mutableStateOf<Insumo?>(null) }
@@ -32,13 +31,13 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
         }
         Text("VENTAS", fontWeight=FontWeight.Bold, fontSize=18.sp, modifier=Modifier.padding(vertical=8.dp))
         if(catalogo.isEmpty()){
-            Text("No hay productos marcados como 'Aparece en catálogo de Ventas'. Ve a Inventario y marca el check.", fontSize=13.sp, color=MaterialTheme.colorScheme.error)
+            Text("No hay productos con check 'Aparece en catálogo de Ventas'. Ve a Inventario.", fontSize=13.sp, color=MaterialTheme.colorScheme.error)
         } else {
             Text("Catálogo (${catalogo.size} productos)", fontWeight=FontWeight.Bold, fontSize=14.sp)
         }
 
         LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp), modifier=Modifier.weight(1f).padding(top=8.dp)) {
-            items(catalogo) { prod ->
+            items(catalogo, key={it.id}) { prod ->
                 ElevatedCard(onClick={
                     seleccionado=prod
                     varianteSeleccionada = if(prod.variantes.isNotEmpty()) prod.variantes[0] else null
@@ -87,7 +86,6 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                 Button(onClick={
                     val cant = cantidad.toDoubleOrNull() ?: 1.0
                     carrito = carrito + Triple(prod, varianteSeleccionada, cant)
-                    // Descuenta stock automaticamente
                     val idx = InventarioRepo.productos.indexOfFirst{ it.id==prod.id }
                     if(idx>=0){
                         val actual = InventarioRepo.productos[idx]
@@ -98,13 +96,5 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
             },
             dismissButton={TextButton(onClick={seleccionado=null}){Text("Cancelar")}}
         )
-    }
-}
-
-@Composable
-fun HistorialScreen(onBack: () -> Unit){
-    Column(Modifier.fillMaxSize().padding(12.dp)){
-        Button(onClick=onBack){Text("← Menú")}
-        Text("Historial de ventas - por implementar", modifier=Modifier.padding(top=12.dp))
     }
 }
