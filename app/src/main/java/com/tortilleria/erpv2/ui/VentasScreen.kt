@@ -3,11 +3,13 @@ package com.tortilleria.erpv2.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tortilleria.erpv2.data.AppDatabase
@@ -31,13 +33,19 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
     var selVariante by remember { mutableStateOf<Pair<String, com.tortilleria.erpv2.data.ProductoVariante>?>(null) }
     var kilosInput by remember { mutableStateOf("") }
     var showKilosDialog by remember { mutableStateOf(false) }
+    
     var showClienteDialog by remember { mutableStateOf(false) }
     var clienteTicket by remember { mutableStateOf("") }
+
+    var showCobroDialog by remember { mutableStateOf(false) }
+    var pagoInput by remember { mutableStateOf("") }
 
     fun cargarTotal() { scope.launch { totalHoy = db.ticketDao().totalHoy() ?: 0.0 } }
     LaunchedEffect(Unit) { cargarTotal() }
 
     val totalCuenta = cuenta.sumOf { it.total }
+    val pagoDouble = pagoInput.toDoubleOrNull() ?: 0.0
+    val cambio = pagoDouble - totalCuenta
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -47,11 +55,8 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                 Text("Hoy: $${String.format("%.2f", totalHoy)}", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top=8.dp))
             }
         }
-
         Spacer(Modifier.height(8.dp))
-
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // IZQUIERDA - INVENTARIO
             Card(Modifier.weight(1.7f).fillMaxHeight()) {
                 Column(Modifier.padding(8.dp)) {
                     Text("Inventario", fontWeight = FontWeight.Bold)
@@ -75,8 +80,6 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                     }
                 }
             }
-
-            // DERECHA - CUENTA
             Card(Modifier.weight(1f).fillMaxHeight()) {
                 Column(Modifier.padding(8.dp).fillMaxHeight()) {
                     Text("Cuenta", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -95,14 +98,7 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                     }
                     Divider()
                     Text("Total: $${String.format("%.2f", totalCuenta)}", fontSize=20.sp, fontWeight=FontWeight.Bold, modifier=Modifier.padding(vertical=8.dp))
-                    Button(onClick = {
-                        if(cuenta.isEmpty()) return@Button
-                        scope.launch {
-                            val id = db.ticketDao().insertarTicket(Ticket(total=totalCuenta, tipo="COBRADO"))
-                            db.ticketDao().insertarDetalles(cuenta.map { TicketDetalle(ticketId=id.toInt(), producto=it.producto, variante=it.variante, kilos=it.kilos, precioKg=it.precio, total=it.total) })
-                            cuenta = listOf(); cargarTotal()
-                        }
-                    }, modifier=Modifier.fillMaxWidth()) { Text("Cobrar") }
+                    Button(onClick = { if(cuenta.isNotEmpty()) { pagoInput=""; showCobroDialog=true } }, modifier=Modifier.fillMaxWidth()) { Text("Cobrar") }
                     OutlinedButton(onClick = { if(cuenta.isNotEmpty()) showClienteDialog=true }, modifier=Modifier.fillMaxWidth()) { Text("Guardar Ticket") }
                     TextButton(onClick = { cuenta = listOf() }, modifier=Modifier.fillMaxWidth()) { Text("Limpiar") }
                 }
@@ -114,7 +110,13 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
         AlertDialog(onDismissRequest = { showKilosDialog=false },
             title={ Text("${selVariante?.first} ${selVariante?.second?.nombre}") },
             text={
-                OutlinedTextField(value=kilosInput, onValueChange={ kilosInput=it }, label={ Text("Kilos (a granel)") })
+                OutlinedTextField(
+                    value=kilosInput, 
+                    onValueChange={ kilosInput=it.replace(",",".") }, 
+                    label={ Text("Kilos (a granel)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
+                )
             },
             confirmButton={
                 Button(onClick={
@@ -127,6 +129,45 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                 }){ Text("Agregar") }
             },
             dismissButton={ TextButton(onClick={showKilosDialog=false}){ Text("Cancelar") } }
+        )
+    }
+
+    if (showCobroDialog) {
+        AlertDialog(onDismissRequest = { showCobroDialog=false },
+            title={ Text("Cobrar") },
+            text={
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Total a cobrar: $${String.format("%.2f", totalCuenta)}", fontWeight=FontWeight.Bold, fontSize=18.sp)
+                    OutlinedTextField(
+                        value=pagoInput,
+                        onValueChange={ pagoInput=it.replace(",",".") },
+                        label={ Text("¿Con cuánto paga?") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier=Modifier.fillMaxWidth()
+                    )
+                    if(pagoDouble>0){
+                        Divider()
+                        if(cambio>=0) {
+                            Text("Cambio: $${String.format("%.2f", cambio)}", fontSize=20.sp, fontWeight=FontWeight.Bold, color=MaterialTheme.colorScheme.primary)
+                        } else {
+                            Text("Falta: $${String.format("%.2f", -cambio)}", color=MaterialTheme.colorScheme.error, fontWeight=FontWeight.Bold)
+                        }
+                    }
+                }
+            },
+            confirmButton={
+                Button(
+                    enabled = pagoDouble >= totalCuenta && totalCuenta>0,
+                    onClick={
+                    scope.launch {
+                        val id = db.ticketDao().insertarTicket(Ticket(total=totalCuenta, tipo="COBRADO"))
+                        db.ticketDao().insertarDetalles(cuenta.map { TicketDetalle(ticketId=id.toInt(), producto=it.producto, variante=it.variante, kilos=it.kilos, precioKg=it.precio, total=it.total) })
+                        cuenta = listOf(); cargarTotal(); showCobroDialog=false; pagoInput=""
+                    }
+                }){ Text("Confirmar Cobro") }
+            },
+            dismissButton={ TextButton(onClick={showCobroDialog=false}){ Text("Cancelar") } }
         )
     }
 

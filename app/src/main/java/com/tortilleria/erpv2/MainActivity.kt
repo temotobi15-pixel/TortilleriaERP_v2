@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import com.tortilleria.erpv2.ui.HistorialScreen
+import com.tortilleria.erpv2.ui.MenuScreen
 import com.tortilleria.erpv2.ui.VentasScreen
 
 class MainActivity : ComponentActivity() {
@@ -15,14 +16,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface {
-                    var ruta by remember { mutableStateOf("ventas") }
+                    var ruta by remember { mutableStateOf("menu") }
                     when (ruta) {
+                        "menu" -> MenuScreen(
+                            onVentas = { ruta = "ventas" },
+                            onHistorial = { ruta = "historial" },
+                            onInventario = { ruta = "ventas" }
+                        )
                         "ventas" -> VentasScreen(
-                            onBack = { finish() },
+                            onBack = { ruta = "menu" },
                             onVerHistorial = { ruta = "historial" }
                         )
                         "historial" -> HistorialScreen(
-                            onBack = { ruta = "ventas" }
+                            onBack = { ruta = "menu" }
                         )
                     }
                 }
