@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tortilleria.erpv2.data.InventarioRepo
 
 data class VarianteProducto(val nombre: String, val precio: Double)
 data class Insumo(
@@ -31,13 +32,7 @@ data class Insumo(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventarioScreen(onBack: () -> Unit) {
-    var insumos by remember { mutableStateOf(listOf(
-        Insumo(1,"Maíz", "MATERIA PRIMA", 250.0, "kg", 50.0, 12.0, 0.0, false, listOf()),
-        Insumo(2,"Harina", "MATERIA PRIMA", 100.0, "kg", 20.0, 15.0, 0.0, false, listOf()),
-        Insumo(3,"Tortilla", "PRODUCTO TERMINADO", 0.0, "kg", 10.0, 14.0, 28.0, true, listOf(VarianteProducto("Normal",28.0), VarianteProducto("Amarilla",30.0))),
-        Insumo(4,"Masa", "PRODUCTO TERMINADO", 0.0, "kg", 5.0, 10.0, 20.0, true, listOf(VarianteProducto("Normal",20.0)))
-    ))}
-    var nextId by remember { mutableStateOf(5) }
+    val insumos = InventarioRepo.productos
 
     var showAjuste by remember { mutableStateOf<Insumo?>(null) }
     var cantidadInput by remember { mutableStateOf("") }
@@ -76,10 +71,7 @@ fun InventarioScreen(onBack: () -> Unit) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier=Modifier.padding(top=8.dp).weight(1f)) {
             items(insumos, key={it.id}) { item ->
                 val bajo = item.stock <= item.minimo
-                ElevatedCard(
-                    colors = CardDefaults.elevatedCardColors(containerColor = if(bajo) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = if(bajo) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(item.nombre, fontWeight=FontWeight.Bold, fontSize=16.sp)
@@ -93,7 +85,7 @@ fun InventarioScreen(onBack: () -> Unit) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             OutlinedButton(onClick={ showAjuste=item; cantidadInput=""; esEntrada=true }, modifier=Modifier.weight(1f)) { Text("Ajustar") }
                             OutlinedButton(onClick={ abrirEditar(item) }, modifier=Modifier.weight(1f)) { Text("Editar") }
-                            Button(onClick={ insumos=insumos.filterNot{ it.id==item.id } }, colors=ButtonDefaults.buttonColors(containerColor=MaterialTheme.colorScheme.error), modifier=Modifier.weight(1f)) { Text("Eliminar") }
+                            Button(onClick={ InventarioRepo.productos.removeIf{ it.id==item.id } }, colors=ButtonDefaults.buttonColors(containerColor=MaterialTheme.colorScheme.error), modifier=Modifier.weight(1f)) { Text("Eliminar") }
                         }
                     }
                 }
@@ -103,8 +95,7 @@ fun InventarioScreen(onBack: () -> Unit) {
 
     if (showAjuste != null) {
         val item = showAjuste!!
-        AlertDialog(onDismissRequest = { showAjuste=null },
-            title = { Text("Ajustar ${item.nombre}") },
+        AlertDialog(onDismissRequest = { showAjuste=null }, title = { Text("Ajustar ${item.nombre}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Stock actual: ${item.stock} ${item.unidad}")
@@ -118,7 +109,13 @@ fun InventarioScreen(onBack: () -> Unit) {
             confirmButton = {
                 Button(onClick={
                     val cant = cantidadInput.toDoubleOrNull() ?: 0.0
-                    if(cant>0) insumos = insumos.map { if(it.id==item.id) it.copy(stock= if(esEntrada) it.stock+cant else (it.stock-cant).coerceAtLeast(0.0)) else it }
+                    if(cant>0){
+                        val idx = InventarioRepo.productos.indexOfFirst{ it.id==item.id }
+                        if(idx>=0){
+                            val actual = InventarioRepo.productos[idx]
+                            InventarioRepo.productos[idx] = actual.copy(stock= if(esEntrada) actual.stock+cant else (actual.stock-cant).coerceAtLeast(0.0))
+                        }
+                    }
                     showAjuste=null
                 }){ Text("Guardar") }
             },
@@ -170,10 +167,11 @@ fun InventarioScreen(onBack: () -> Unit) {
             confirmButton = {
                 Button(enabled=nNombre.isNotBlank(), onClick={
                     if(editando==null){
-                        val nuevo = Insumo(id=nextId, nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:0.0, minimo=nMinimo.toDoubleOrNull()?:0.0, costo=nCosto.toDoubleOrNull()?:0.0, precioVenta=nPrecio.toDoubleOrNull()?:0.0, apareceEnCatalogo=nAparece, variantes=nVariantes)
-                        insumos = insumos + nuevo; nextId++
+                        val nuevo = Insumo(id=InventarioRepo.nextId++, nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:0.0, minimo=nMinimo.toDoubleOrNull()?:0.0, costo=nCosto.toDoubleOrNull()?:0.0, precioVenta=nPrecio.toDoubleOrNull()?:0.0, apareceEnCatalogo=nAparece, variantes=nVariantes)
+                        InventarioRepo.productos.add(nuevo)
                     } else {
-                        insumos = insumos.map { if(it.id==editando!!.id) it.copy(nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:it.stock, minimo=nMinimo.toDoubleOrNull()?:it.minimo, costo=nCosto.toDoubleOrNull()?:it.costo, precioVenta=nPrecio.toDoubleOrNull()?:it.precioVenta, apareceEnCatalogo=nAparece, variantes=nVariantes) else it }
+                        val idx = InventarioRepo.productos.indexOfFirst{ it.id==editando!!.id }
+                        if(idx>=0) InventarioRepo.productos[idx] = InventarioRepo.productos[idx].copy(nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:InventarioRepo.productos[idx].stock, minimo=nMinimo.toDoubleOrNull()?:InventarioRepo.productos[idx].minimo, costo=nCosto.toDoubleOrNull()?:InventarioRepo.productos[idx].costo, precioVenta=nPrecio.toDoubleOrNull()?:InventarioRepo.productos[idx].precioVenta, apareceEnCatalogo=nAparece, variantes=nVariantes)
                     }
                     showNuevo=false
                 }){ Text(if(editando==null) "Agregar" else "Guardar") }
