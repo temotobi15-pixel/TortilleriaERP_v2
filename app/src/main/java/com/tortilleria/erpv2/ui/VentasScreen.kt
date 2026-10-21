@@ -3,9 +3,6 @@ package com.tortilleria.erpv2.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,7 +17,7 @@ data class VentaHistorial(
     val nombre: String,
     val kilos: Double,
     val total: Double,
-    val tipo: String, // TICKET or COBRADA
+    val tipo: String,
     val cliente: String = "Turi"
 )
 
@@ -35,9 +32,11 @@ object VentasRepo {
 @Composable
 fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
     val catalogo = InventarioRepo.productos.filter { it.apareceEnCatalogo }
+    // Agrupa por categoria si existe, si no todo a General
     val categorias = catalogo.groupBy { 
-        // si tu Insumo tiene categoria usala, si no agrupa por nombre
-        try { it.categoria.ifBlank { "General" } } catch (e: Exception) { "General" }
+        try { (it as? Any)?.let { p -> 
+            val f = p.javaClass.getDeclaredField("categoria"); f.isAccessible=true; f.get(p) as? String
+        } ?: "General" } catch (e: Exception) { "General" }
     }
 
     var producto by remember { mutableStateOf(catalogo.firstOrNull()) }
@@ -75,7 +74,6 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
             Text("Tortilleria ERP v2", fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.padding(top = 8.dp))
         }
 
-        // NUEVA VENTA
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -99,7 +97,7 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                             if (kilos > 0 && producto != null) {
                                 VentasRepo.historial.add(0, VentaHistorial("${producto!!.nombre} ${variante?.nombre ?: ""} - ${kilos}kg", kilos, total, "COBRADA"))
                                 VentasRepo.totalHoy += total
-                                val idx = InventarioRepo.productos.indexOfFirst { it.id == producto!!.id }
+                                val idx = InventarioRepo.productos.indexOfFirst { it.nombre == producto!!.nombre }
                                 if (idx >= 0) {
                                     val act = InventarioRepo.productos[idx]
                                     InventarioRepo.productos[idx] = act.copy(stock = (act.stock - kilos).coerceAtLeast(0.0))
@@ -112,13 +110,10 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
             }
         }
 
-        // CUADRICULA POR CATEGORIAS
+        // GRID POR CATEGORIAS - 2 columnas
         categorias.forEach { (cat, prods) ->
+            item { Text(cat.uppercase(), fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp)) }
             item {
-                Text(cat.uppercase(), fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
-            }
-            item {
-                // grid de 2 columnas para esa categoria
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     prods.chunked(2).forEach { fila ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -126,15 +121,14 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                                 ElevatedCard(
                                     onClick = { producto = p; variante = p.variantes.firstOrNull() },
                                     modifier = Modifier.weight(1f),
-                                    colors = CardDefaults.elevatedCardColors(containerColor = if (producto?.id == p.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+                                    colors = CardDefaults.elevatedCardColors(containerColor = if (producto?.nombre == p.nombre) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
                                 ) {
                                     Column(Modifier.padding(10.dp)) {
                                         Text(p.nombre, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
                                         if (p.variantes.isNotEmpty()) {
-                                            // muestra variantes como chips
-                                            p.variantes.take(2).forEach { v ->
+                                            p.variantes.take(3).forEach { v ->
                                                 FilterChip(
-                                                    selected = producto?.id == p.id && variante?.id == v.id,
+                                                    selected = producto?.nombre == p.nombre && variante?.nombre == v.nombre,
                                                     onClick = { producto = p; variante = v },
                                                     label = { Text("${v.nombre} $${v.precio}", fontSize = 11.sp) },
                                                     modifier = Modifier.padding(top = 2.dp)
@@ -153,7 +147,6 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
             }
         }
 
-        // HISTORIAL SEPARADO
         item {
             TabRow(selectedTabIndex = tab) {
                 Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Tickets (${VentasRepo.tickets().size})") })
@@ -168,7 +161,6 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             if (tab == 0) {
-                                // cobrar ticket guardado
                                 VentasRepo.historial.remove(v)
                                 VentasRepo.historial.add(0, v.copy(tipo = "COBRADA"))
                                 VentasRepo.totalHoy += v.total
@@ -178,7 +170,7 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                         Row(Modifier.padding(12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column(Modifier.weight(1f)) {
                                 Text(v.nombre, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text(if (tab == 0) "TICKET: ${v.cliente} - Toca para cobrar" else "COBRADA", fontSize = 11.sp)
+                                Text(if (tab == 0) "TICKET - Toca para cobrar" else "COBRADA", fontSize = 11.sp)
                             }
                             Text("$${v.total}", fontWeight = FontWeight.Bold)
                         }
