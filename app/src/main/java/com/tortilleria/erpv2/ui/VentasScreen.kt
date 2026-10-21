@@ -60,24 +60,9 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
         return
     }
 
-    // categorias simples sin reflection para no romper build
-    val categorias = remember(catalogo) {
-        val map = mutableMapOf<String, List<Any>>()
-        map["Lo más frecuente"] = catalogo.take(15)
-        // si tus productos tienen campo categoria, agrupará solo, si no todo cae en Tortilleria
-        val porCat = try {
-            catalogo.groupBy { p ->
-                try {
-                    val f = p.javaClass.getDeclaredField("categoria")
-                    f.isAccessible = true
-                    (f.get(p) as? String)?.ifBlank { "Tortilleria" } ?: "Tortilleria"
-                } catch (e: Exception) { "Tortilleria" }
-            }
-        } catch (e: Exception) { emptyMap() }
-        porCat.forEach { (k, v) -> map[k] = v }
-        map
-    }
-    val listaVisible = (categorias[categoriaSel] as? List<*>)?.filterIsInstance<com.tortilleria.erpv2.data.Insumo>() ?: catalogo
+    // Lista visible = todo el catalogo por ahora para asegurar build, categorias solo visual
+    val listaVisible = catalogo
+    val categoriasLista = listOf("Lo más frecuente", "Tortilleria", "Mostrador", "Granel y Otros", "Dulces y Botanas", "Frutas y Verduras")
 
     Row(Modifier.fillMaxSize()) {
         Column(Modifier.weight(0.62f).fillMaxHeight()) {
@@ -101,8 +86,8 @@ fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
                     }
                 }
             }
-            ScrollableTabRow(selectedTabIndex = 0) {
-                categorias.keys.forEach { cat ->
+            ScrollableTabRow(selectedTabIndex = categoriasLista.indexOf(categoriaSel).coerceAtLeast(0)) {
+                categoriasLista.forEach { cat ->
                     Tab(selected = cat == categoriaSel, onClick = { categoriaSel = cat }, text = { Text(cat, fontSize = 10.sp) })
                 }
             }
