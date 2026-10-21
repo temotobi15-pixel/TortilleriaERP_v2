@@ -14,19 +14,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tortilleria.erpv2.data.InventarioRepo
+import com.tortilleria.erpv2.data.CategoriasRepo
 
 data class VarianteProducto(val nombre: String, val precio: Double)
 data class Insumo(
     var id: Int,
     var nombre: String,
-    var categoria: String,
+    var categoria: String, // TIPO: MATERIA PRIMA / PRODUCTO TERMINADO
     var stock: Double,
     var unidad: String,
     var minimo: Double,
     var costo: Double,
     var precioVenta: Double,
     var apareceEnCatalogo: Boolean,
-    var variantes: List<VarianteProducto>
+    var variantes: List<VarianteProducto>,
+    var categoriaVenta: String = "Tortilleria" // <-- NUEVO: categoria para POS
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +44,7 @@ fun InventarioScreen(onBack: () -> Unit) {
     var editando by remember { mutableStateOf<Insumo?>(null) }
     var nNombre by remember { mutableStateOf("") }
     var nCategoria by remember { mutableStateOf("MATERIA PRIMA") }
+    var nCategoriaVenta by remember { mutableStateOf("Tortilleria") }
     var nUnidad by remember { mutableStateOf("kg") }
     var nStock by remember { mutableStateOf("") }
     var nMinimo by remember { mutableStateOf("") }
@@ -52,11 +55,15 @@ fun InventarioScreen(onBack: () -> Unit) {
     var vNombre by remember { mutableStateOf("") }
     var vPrecio by remember { mutableStateOf("") }
 
+    // --- NUEVO: dialogo categorias ---
+    var showCat by remember { mutableStateOf(false) }
+    var nuevaCatTxt by remember { mutableStateOf("") }
+
     fun abrirNuevo() {
-        editando=null; nNombre=""; nStock=""; nMinimo=""; nCosto=""; nPrecio=""; nUnidad="kg"; nCategoria="MATERIA PRIMA"; nAparece=true; nVariantes=listOf(); vNombre=""; vPrecio=""; showNuevo=true
+        editando=null; nNombre=""; nStock=""; nMinimo=""; nCosto=""; nPrecio=""; nUnidad="kg"; nCategoria="MATERIA PRIMA"; nCategoriaVenta="Tortilleria"; nAparece=true; nVariantes=listOf(); vNombre=""; vPrecio=""; showNuevo=true
     }
     fun abrirEditar(item: Insumo) {
-        editando=item; nNombre=item.nombre; nCategoria=item.categoria; nUnidad=item.unidad; nStock=item.stock.toString(); nMinimo=item.minimo.toString(); nCosto=item.costo.toString(); nPrecio=item.precioVenta.toString(); nAparece=item.apareceEnCatalogo; nVariantes=item.variantes; showNuevo=true
+        editando=item; nNombre=item.nombre; nCategoria=item.categoria; nCategoriaVenta=item.categoriaVenta; nUnidad=item.unidad; nStock=item.stock.toString(); nMinimo=item.minimo.toString(); nCosto=item.costo.toString(); nPrecio=item.precioVenta.toString(); nAparece=item.apareceEnCatalogo; nVariantes=item.variantes; showNuevo=true
     }
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
@@ -65,7 +72,10 @@ fun InventarioScreen(onBack: () -> Unit) {
             Text("INVENTARIO", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier=Modifier.padding(top=8.dp))
         }
         Spacer(Modifier.height(12.dp))
-        Button(onClick = { abrirNuevo() }, modifier=Modifier.fillMaxWidth()) { Text("+ Agregar Producto / Insumo") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { abrirNuevo() }, modifier=Modifier.weight(1f)) { Text("+ Agregar") }
+            OutlinedButton(onClick = { showCat = true }, modifier=Modifier.weight(1f)) { Text("📁 Categorías (${CategoriasRepo.categorias.size})") }
+        }
         Spacer(Modifier.height(8.dp))
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier=Modifier.padding(top=8.dp).weight(1f)) {
@@ -77,7 +87,7 @@ fun InventarioScreen(onBack: () -> Unit) {
                             Text(item.nombre, fontWeight=FontWeight.Bold, fontSize=16.sp)
                             if(item.apareceEnCatalogo) Badge{ Text("En Ventas") }
                         }
-                        Text("${item.categoria} - ${item.stock} ${item.unidad} | Min: ${item.minimo}", fontSize=12.sp)
+                        Text("${item.categoria} | Venta: ${item.categoriaVenta} - ${item.stock} ${item.unidad} | Min: ${item.minimo}", fontSize=12.sp)
                         if(item.variantes.isNotEmpty()) Text("Variantes: ${item.variantes.joinToString{ "${it.nombre} $${it.precio}" }}", fontSize=11.sp, fontWeight=FontWeight.SemiBold)
                         Text("Costo: $${item.costo} | Venta: $${item.precioVenta}", fontSize=11.sp)
                         if(bajo) Text("⚠️ BAJO STOCK", color=MaterialTheme.colorScheme.error, fontSize=11.sp, fontWeight=FontWeight.Bold)
@@ -91,6 +101,33 @@ fun InventarioScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+
+    // DIALOG CATEGORIAS - NUEVO
+    if (showCat) {
+        AlertDialog(onDismissRequest = { showCat = false },
+            title = { Text("Categorías de Venta") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(value=nuevaCatTxt, onValueChange={ nuevaCatTxt = it }, label={ Text("Nueva categoría") }, modifier=Modifier.weight(1f), singleLine=true)
+                        Button(onClick={ CategoriasRepo.agregar(nuevaCatTxt); nuevaCatTxt="" }) { Text("+") }
+                    }
+                    Divider()
+                    LazyColumn {
+                        items(CategoriasRepo.categorias.size) { idx ->
+                            val cat = CategoriasRepo.categorias[idx]
+                            Row(Modifier.fillMaxWidth().padding(vertical=4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(cat, fontSize=14.sp, fontWeight=FontWeight.Bold)
+                                TextButton(onClick={ CategoriasRepo.eliminar(cat) }) { Text("X") }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick={ showCat = false }) { Text("Cerrar") } },
+            dismissButton = {}
+        )
     }
 
     if (showAjuste != null) {
@@ -127,13 +164,28 @@ fun InventarioScreen(onBack: () -> Unit) {
         AlertDialog(onDismissRequest = { showNuevo=false },
             title = { Text(if(editando==null) "Nuevo Producto / Insumo" else "Editar ${editando!!.nombre}") },
             text = {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier=Modifier.heightIn(max=520.dp)) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier=Modifier.heightIn(max=620.dp)) {
                     item { OutlinedTextField(value=nNombre, onValueChange={nNombre=it}, label={Text("Nombre *")}, modifier=Modifier.fillMaxWidth(), singleLine=true) }
-                    item { Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilterChip(selected=nCategoria=="MATERIA PRIMA", onClick={nCategoria="MATERIA PRIMA"}, label={Text("Mat. Prima")})
-                        FilterChip(selected=nCategoria=="PRODUCTO TERMINADO", onClick={nCategoria="PRODUCTO TERMINADO"}, label={Text("Terminado")})
-                        FilterChip(selected=nCategoria=="CONSUMIBLE", onClick={nCategoria="CONSUMIBLE"}, label={Text("Consumible")})
+                    item { Text("Tipo de insumo:", fontWeight=FontWeight.Bold, fontSize=12.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChip(selected=nCategoria=="MATERIA PRIMA", onClick={nCategoria="MATERIA PRIMA"}, label={Text("Mat. Prima", fontSize=11.sp)})
+                        FilterChip(selected=nCategoria=="PRODUCTO TERMINADO", onClick={nCategoria="PRODUCTO TERMINADO"}, label={Text("Terminado", fontSize=11.sp)})
+                        FilterChip(selected=nCategoria=="CONSUMIBLE", onClick={nCategoria="CONSUMIBLE"}, label={Text("Consumible", fontSize=11.sp)})
                     }}
+                    // NUEVO: selector categoria de venta
+                    item { 
+                        Text("¿En qué categoría de Ventas va?", fontWeight=FontWeight.Bold, fontSize=12.sp, color=MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(4.dp))
+                        var expanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(expanded=expanded, onExpandedChange={expanded=!expanded}) {
+                            OutlinedTextField(value=nCategoriaVenta, onValueChange={}, readOnly=true, label={Text("Categoría Venta *")}, trailingIcon={ExposedDropdownMenuDefaults.TrailingIcon(expanded)}, modifier=Modifier.menuAnchor().fillMaxWidth())
+                            ExposedDropdownMenu(expanded=expanded, onDismissRequest={expanded=false}) {
+                                CategoriasRepo.categorias.forEach { cat ->
+                                    DropdownMenuItem(text={Text(cat)}, onClick={ nCategoriaVenta=cat; expanded=false })
+                                }
+                            }
+                        }
+                    }
                     item { Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         FilterChip(selected=nUnidad=="kg", onClick={nUnidad="kg"}, label={Text("kg")})
                         FilterChip(selected=nUnidad=="pzas", onClick={nUnidad="pzas"}, label={Text("pzas")})
@@ -167,11 +219,11 @@ fun InventarioScreen(onBack: () -> Unit) {
             confirmButton = {
                 Button(enabled=nNombre.isNotBlank(), onClick={
                     if(editando==null){
-                        val nuevo = Insumo(id=InventarioRepo.nextId++, nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:0.0, minimo=nMinimo.toDoubleOrNull()?:0.0, costo=nCosto.toDoubleOrNull()?:0.0, precioVenta=nPrecio.toDoubleOrNull()?:0.0, apareceEnCatalogo=nAparece, variantes=nVariantes)
+                        val nuevo = Insumo(id=InventarioRepo.nextId++, nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:0.0, minimo=nMinimo.toDoubleOrNull()?:0.0, costo=nCosto.toDoubleOrNull()?:0.0, precioVenta=nPrecio.toDoubleOrNull()?:0.0, apareceEnCatalogo=nAparece, variantes=nVariantes, categoriaVenta=nCategoriaVenta)
                         InventarioRepo.productos.add(nuevo)
                     } else {
                         val idx = InventarioRepo.productos.indexOfFirst{ it.id==editando!!.id }
-                        if(idx>=0) InventarioRepo.productos[idx] = InventarioRepo.productos[idx].copy(nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:InventarioRepo.productos[idx].stock, minimo=nMinimo.toDoubleOrNull()?:InventarioRepo.productos[idx].minimo, costo=nCosto.toDoubleOrNull()?:InventarioRepo.productos[idx].costo, precioVenta=nPrecio.toDoubleOrNull()?:InventarioRepo.productos[idx].precioVenta, apareceEnCatalogo=nAparece, variantes=nVariantes)
+                        if(idx>=0) InventarioRepo.productos[idx] = InventarioRepo.productos[idx].copy(nombre=nNombre.trim(), categoria=nCategoria, unidad=nUnidad, stock=nStock.toDoubleOrNull()?:InventarioRepo.productos[idx].stock, minimo=nMinimo.toDoubleOrNull()?:InventarioRepo.productos[idx].minimo, costo=nCosto.toDoubleOrNull()?:InventarioRepo.productos[idx].costo, precioVenta=nPrecio.toDoubleOrNull()?:InventarioRepo.productos[idx].precioVenta, apareceEnCatalogo=nAparece, variantes=nVariantes, categoriaVenta=nCategoriaVenta)
                     }
                     showNuevo=false
                 }){ Text(if(editando==null) "Agregar" else "Guardar") }
@@ -179,4 +231,4 @@ fun InventarioScreen(onBack: () -> Unit) {
             dismissButton = { TextButton(onClick={showNuevo=false}){ Text("Cancelar") } }
         )
     }
-}
+                                                             }
