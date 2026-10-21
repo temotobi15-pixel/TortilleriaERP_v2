@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.tortilleria.erpv2.ui
 
 import androidx.compose.foundation.layout.*
@@ -14,6 +15,7 @@ import androidx.compose.ui.unit.sp
 
 data class Insumo(var nombre: String, var stock: Double, var unidad: String, var minimo: Double)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventarioScreen(onBack: () -> Unit) {
     var insumos by remember { mutableStateOf(listOf(

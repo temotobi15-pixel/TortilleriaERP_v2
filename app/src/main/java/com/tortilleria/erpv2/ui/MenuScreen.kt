@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.tortilleria.erpv2.ui
 
 import androidx.compose.foundation.layout.*
@@ -29,6 +30,7 @@ fun MenuScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MenuCard(titulo: String, subtitulo: String, onClick: () -> Unit) {
     ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
