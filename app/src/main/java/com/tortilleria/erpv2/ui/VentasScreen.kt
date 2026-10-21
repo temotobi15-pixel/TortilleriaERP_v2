@@ -17,6 +17,7 @@ import com.tortilleria.erpv2.data.Ticket
 import com.tortilleria.erpv2.data.TicketDetalle
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VentasScreen(onBack: () -> Unit, onVerHistorial: () -> Unit) {
     val context = LocalContext.current
