@@ -15,11 +15,7 @@ import androidx.compose.ui.unit.sp
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme {
-                TortilleriaApp()
-            }
-        }
+        setContent { MaterialTheme { TortilleriaApp() } }
     }
 }
 
@@ -27,13 +23,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TortilleriaApp() {
     var pantalla by remember { mutableStateOf("menu") }
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Tortilleria ERP v2", fontWeight = FontWeight.Bold) }) }
-    ) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text("Tortilleria ERP v2", fontWeight = FontWeight.Bold) }) }) { padding ->
         Box(modifier = Modifier.padding(padding)) {
             when (pantalla) {
                 "menu" -> MenuPrincipal(onNavigate = { pantalla = it })
-                "ventas" -> PantallaSimple("Ventas / Pedidos", onBack = { pantalla = "menu" })
+                "ventas" -> VentasScreen(onBack = { pantalla = "menu" })
                 "produccion" -> PantallaSimple("Producción Diaria", onBack = { pantalla = "menu" })
                 "inventario" -> PantallaSimple("Inventario Maíz/Harina", onBack = { pantalla = "menu" })
                 "clientes" -> PantallaSimple("Clientes y Cuentas", onBack = { pantalla = "menu" })
@@ -47,7 +41,7 @@ fun TortilleriaApp() {
 @Composable
 fun MenuPrincipal(onNavigate: (String) -> Unit) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Text("Base OK - Módulos:", fontSize = 16.sp, modifier = Modifier.padding(bottom = 8.dp)) }
+        item { Text("Módulos:", fontSize = 16.sp) }
         item { MenuCard("🛒 Ventas y Pedidos", "Registrar pedidos, tortilla, masa") { onNavigate("ventas") } }
         item { MenuCard("🌽 Producción", "Kilos producidos, merma") { onNavigate("produccion") } }
         item { MenuCard("📦 Inventario", "Maíz, harina, gas, papel") { onNavigate("inventario") } }
@@ -73,7 +67,5 @@ fun PantallaSimple(titulo: String, onBack: () -> Unit) {
         Button(onClick = onBack) { Text("← Volver") }
         Spacer(modifier = Modifier.height(20.dp))
         Text(titulo, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(10.dp))
-        Text("Aquí va la lógica de $titulo.")
     }
 }
