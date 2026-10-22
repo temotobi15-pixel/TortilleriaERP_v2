@@ -1,6 +1,11 @@
 package com.tortilleria.erpv2.data
 
 import androidx.room.*
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.math.roundToInt
+
+// ================== TUS TABLAS ESTABLES (NO TOQUE) ==================
 
 @Entity(tableName = "tickets")
 data class Ticket(
@@ -42,7 +47,101 @@ interface TicketDao {
     suspend fun marcarCobrado(id: Int)
 }
 
-// --- CATALOGO FIJO EXTENSO ---
+// ================== NUEVO: MODULO USUARIOS + PRODUCCION TORTILLERAS ==================
+
+@Entity(tableName = "empleados")
+data class Empleado(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val nombre: String = "",
+    val rolId: String = "TORTILLERA", // TORTILLERA, REPARTIDOR, MOSTRADOR, ADMIN
+    val rolNombreSnapshot: String = "Tortillera",
+    val pagoPorBola: Double = 8.0, // VARIABLE por empleada - solo aplica si rol=Tortillera
+    val telefono: String = "",
+    val qrToken: String = "LOGIN:${System.currentTimeMillis()}",
+    val qrActivo: Boolean = true,
+    val activo: Boolean = true,
+    val fechaLong: Long = System.currentTimeMillis(),
+    val fechaDia: String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()),
+    val semanaId: String = SimpleDateFormat("yyyy-'W'ww", Locale.US).format(Date())
+)
+
+@Entity(tableName = "registro_bolas")
+data class RegistroBola(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val empleadoId: String = "",
+    val empleadoNombreSnapshot: String = "",
+    val kg: Double = 0.0,
+    // LOGICA FRACCIONAL: 5kg = 1 bola, 3kg = 0.6, 8kg = 1.6
+    val bolas: Double = 0.0, // auto-calculado = kg / 5
+    val pagoPorBolaSnapshot: Double = 8.0,
+    val ganado: Double = 0.0, // auto-calculado = bolas * pago
+    val hora: String = SimpleDateFormat("HH:mm", Locale.US).format(Date()),
+    val entregado: Boolean = true,
+    val entregadoPorId: String = "",
+    val fechaLong: Long = System.currentTimeMillis(),
+    val fechaDia: String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()),
+    val semanaId: String = SimpleDateFormat("yyyy-'W'ww", Locale.US).format(Date())
+) {
+    companion object {
+        fun kgToBolas(kg: Double): Double {
+            // 5kg = 1 bola -> 12.5kg=2.5, 8kg=1.6, 3kg=0.6
+            return ((kg / 5.0) * 10.0).roundToInt() / 10.0
+        }
+        fun calcularGanado(kg: Double, pagoPorBola: Double): Double {
+            return kgToBolas(kg) * pagoPorBola
+        }
+    }
+}
+
+@Dao
+interface EmpleadoDao {
+    @Query("SELECT * FROM empleados WHERE activo=1 ORDER BY nombre ASC")
+    suspend fun obtenerTodos(): List<Empleado>
+
+    @Query("SELECT * FROM empleados WHERE rolId='TORTILLERA' AND activo=1 ORDER BY nombre ASC")
+    suspend fun obtenerTortilleras(): List<Empleado>
+
+    @Query("SELECT * FROM empleados WHERE id=:id")
+    suspend fun obtenerPorId(id: String): Empleado?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertar(e: Empleado)
+
+    @Query("UPDATE empleados SET activo=0 WHERE id=:id")
+    suspend fun desactivar(id: String)
+
+    @Query("DELETE FROM empleados WHERE id=:id")
+    suspend fun eliminarDefinitivo(id: String)
+}
+
+@Dao
+interface RegistroBolaDao {
+    @Query("SELECT * FROM registro_bolas WHERE fechaDia=:fechaDia ORDER BY fechaLong ASC")
+    suspend fun obtenerPorDia(fechaDia: String): List<RegistroBola>
+
+    @Query("SELECT * FROM registro_bolas WHERE semanaId=:semanaId ORDER BY fechaLong DESC")
+    suspend fun obtenerPorSemana(semanaId: String): List<RegistroBola>
+
+    @Query("SELECT * FROM registro_bolas WHERE empleadoId=:empleadoId AND fechaDia=:fechaDia")
+    suspend fun obtenerPorEmpleadoYdia(empleadoId: String, fechaDia: String): List<RegistroBola>
+
+    @Query("SELECT SUM(kg) FROM registro_bolas WHERE fechaDia=:fechaDia")
+    suspend fun totalKgPorDia(fechaDia: String): Double?
+
+    @Query("SELECT SUM(bolas) FROM registro_bolas WHERE fechaDia=:fechaDia")
+    suspend fun totalBolasPorDia(fechaDia: String): Double?
+
+    @Query("SELECT SUM(ganado) FROM registro_bolas WHERE fechaDia=:fechaDia")
+    suspend fun totalGanadoPorDia(fechaDia: String): Double?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertar(r: RegistroBola)
+
+    @Query("DELETE FROM registro_bolas WHERE id=:id")
+    suspend fun eliminar(id: String)
+}
+
+// --- CATALOGO FIJO EXTENSO (TU CODIGO ORIGINAL) ---
 data class ProductoVariante(val sku: String, val nombre: String, val precio: Double)
 data class Producto(val id: String, val nombre: String, val categoria: String, val precioBase: Double, val variantes: List<ProductoVariante>)
 

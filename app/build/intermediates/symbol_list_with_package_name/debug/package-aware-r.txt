@@ -1,12 +1,5 @@
 com.tortilleria.erpv2
-attr action
 attr alpha
-attr argType
-attr data
-attr dataPattern
-attr destination
-attr enterAnim
-attr exitAnim
 attr font
 attr fontProviderAuthority
 attr fontProviderCerts
@@ -18,26 +11,11 @@ attr fontProviderSystemFontFamily
 attr fontStyle
 attr fontVariationSettings
 attr fontWeight
-attr graph
 attr lStar
-attr launchSingleTop
-attr mimeType
-attr navGraph
 attr nestedScrollViewStyle
-attr nullable
-attr popEnterAnim
-attr popExitAnim
-attr popUpTo
-attr popUpToInclusive
-attr popUpToSaveState
 attr queryPatterns
-attr restoreState
-attr route
 attr shortcutMatchRequired
-attr startDestination
-attr targetPackage
 attr ttcIndex
-attr uri
 color androidx_core_ripple_material_light
 color androidx_core_secondary_text_default_material_light
 color call_notification_answer_color
@@ -82,6 +60,7 @@ drawable notification_bg_low_pressed
 drawable notification_bg_normal
 drawable notification_bg_normal_pressed
 drawable notification_icon_background
+drawable notification_oversize_large_icon_bg
 drawable notification_template_icon_bg
 drawable notification_template_icon_low_bg
 drawable notification_tile_bg
@@ -131,7 +110,9 @@ id chronometer
 id compose_view_saveable_id_tag
 id consume_window_insets_tag
 id dialog_button
+id edit_text_id
 id forever
+id hide_ime_id
 id hide_in_inspector_tag
 id icon
 id icon_group
@@ -141,7 +122,6 @@ id is_pooling_container_tag
 id italic
 id line1
 id line3
-id nav_controller_view_tag
 id normal
 id notification_background
 id notification_main_column
@@ -174,6 +154,8 @@ id view_tree_view_model_store_owner
 id wrapped_composition_tag
 integer status_bar_notification_info_maxnum
 layout custom_dialog
+layout ime_base_split_test_activity
+layout ime_secondary_split_test_activity
 layout notification_action
 layout notification_action_tombstone
 layout notification_template_custom_big
@@ -272,17 +254,9 @@ style TextAppearance_Compat_Notification_Time
 style TextAppearance_Compat_Notification_Title
 style Widget_Compat_NotificationActionContainer
 style Widget_Compat_NotificationActionText
-styleable ActivityNavigator android_name action data dataPattern targetPackage
 styleable Capability queryPatterns shortcutMatchRequired
 styleable ColorStateListItem android_color android_alpha android_lStar alpha lStar
 styleable FontFamily fontProviderAuthority fontProviderCerts fontProviderFetchStrategy fontProviderFetchTimeout fontProviderPackage fontProviderQuery fontProviderSystemFontFamily
 styleable FontFamilyFont android_font android_fontWeight android_fontStyle android_ttcIndex android_fontVariationSettings font fontStyle fontVariationSettings fontWeight ttcIndex
 styleable GradientColor android_startColor android_endColor android_type android_centerX android_centerY android_gradientRadius android_tileMode android_centerColor android_startX android_startY android_endX android_endY
 styleable GradientColorItem android_color android_offset
-styleable NavAction android_id destination enterAnim exitAnim launchSingleTop popEnterAnim popExitAnim popUpTo popUpToInclusive popUpToSaveState restoreState
-styleable NavArgument android_name android_defaultValue argType nullable
-styleable NavDeepLink android_autoVerify action mimeType uri
-styleable NavGraphNavigator startDestination
-styleable NavHost navGraph
-styleable NavInclude graph
-styleable Navigator android_label android_id route
