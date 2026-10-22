@@ -13,9 +13,11 @@ import androidx.compose.ui.unit.sp
 fun MenuScreen(
     onVentas: () -> Unit,
     onProduccion: () -> Unit,
+    onProduccionTortilleras: () -> Unit, // NUEVO: bolas fraccionales 5kg=1bola
     onInventario: () -> Unit,
     onClientes: () -> Unit,
-    onReportes: () -> Unit
+    onReportes: () -> Unit,
+    onUsuarios: () -> Unit // NUEVO: Alta + QR + pago variable
 ) {
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Tortillería ERP v2", fontSize = 28.sp, fontWeight = FontWeight.Bold)
@@ -23,6 +25,8 @@ fun MenuScreen(
         Spacer(Modifier.height(8.dp))
 
         MenuCard("🛒 Ventas y Pedidos", "Registrar pedidos, tortilla, masa", onVentas)
+        MenuCard("👥 Usuarios", "Alta + QR Login + Pago \$x bola", onUsuarios)
+        MenuCard("⚖️ Producción Tortilleras", "Grid 3 cards • kg→bolas (5kg=1) • Total General", onProduccionTortilleras)
         MenuCard("🌽 Producción", "Kilos producidos, merma", onProduccion)
         MenuCard("📦 Inventario", "Maíz, harina, gas, papel", onInventario)
         MenuCard("👥 Clientes", "Tiendas, rutas, adeudos", onClientes)
